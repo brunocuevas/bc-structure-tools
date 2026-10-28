@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -71,15 +72,47 @@ def _load_and_validate(input_file):
     return validated_content
 
 
+def _to_jsonable(value):
+    """Convert tensors/arrays/scalars into plain JSON types."""
+    if value is None:
+        return None
+    if hasattr(value, "detach"):
+        value = value.detach().cpu()
+    if hasattr(value, "tolist"):
+        return value.tolist()
+    if hasattr(value, "item"):
+        try:
+            return value.item()
+        except (ValueError, TypeError):
+            pass
+    if isinstance(value, (list, tuple)):
+        return [_to_jsonable(v) for v in value]
+    if isinstance(value, (float, int, str, bool)):
+        return value
+    return value
+
+
+def _confidence_metrics(sample):
+    return {
+        "plddt": _to_jsonable(getattr(sample, "plddt", None)),
+        "pae": _to_jsonable(getattr(sample, "pae", None)),
+        "ptm": _to_jsonable(getattr(sample, "ptm", None)),
+        "iptm": _to_jsonable(getattr(sample, "iptm", None)),
+    }
+
+
 def _write_fold_result(name, result):
-    """Write one or more mmCIF outputs from a fold result."""
+    """Write mmCIF structure(s) and confidence-metric JSON for a fold result."""
     results = result if isinstance(result, list) else [result]
     for i, sample in enumerate(results):
         suffix = "" if len(results) == 1 else f".sample{i}"
-        out_path = f"{name}{suffix}.esmfold2.cif"
-        with open(out_path, "w") as f:
+        cif_path = f"{name}{suffix}.esmfold2.cif"
+        json_path = f"{name}{suffix}.esmfold2.json"
+        with open(cif_path, "w") as f:
             f.write(sample.complex.to_mmcif())
-        l.info(f"Wrote {out_path}")
+        with open(json_path, "w") as f:
+            json.dump(_confidence_metrics(sample), f)
+        l.info(f"Wrote {cif_path} and {json_path}")
 
 
 @cli.command()
@@ -142,7 +175,11 @@ def remote_prediction(
             seed,
         )
 
-    config = FoldingConfig(num_loops=num_loops, num_sampling_steps=num_sampling_steps)
+    config = FoldingConfig(
+        num_loops=num_loops,
+        num_sampling_steps=num_sampling_steps,
+        include_pae=True,
+    )
     token = os.environ.get("BIOHUB_TOKEN") or os.environ.get("BIOHUB_TOKKEN")
     if not token:
         raise click.ClickException(

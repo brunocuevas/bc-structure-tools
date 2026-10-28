@@ -64,6 +64,29 @@ Where `example.1.json` is:
 
 ## Installation
 
-Clone, uv sync. 
+### As this repo
+
+```bash
+uv sync
+```
+
+### As a dependency of another project (path / git)
+
+```bash
+uv add /path/to/structure_tools
+# or: uv add git+ssh://.../structure_tools
+```
+
+`structure_tools` depends on plain PyPI `torch` so this works on macOS (MPS/CPU) and Linux. CUDA is **not** pinned in the library metadata on purpose — a `cu128` source here would break Mac consumers.
+
+### GPU / CUDA 12.8 (H200, Linux only)
+
+CUDA wheels do not exist for macOS. On a Linux GPU host or in Docker:
+
+```bash
+UV_TORCH_BACKEND=cu128 uv sync
+```
+
+Or build/run the included Dockerfile (`nvidia/cuda:12.8...`), which sets `UV_TORCH_BACKEND=cu128` for you. Never export that variable on a Mac.
 
 
