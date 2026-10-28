@@ -1,12 +1,18 @@
 import logging
 import os
+import sys
 
 import click
-from logging import Logger
 
 from structure_tools.wrappers import parse_json_input, input_validation, build_structure_input
 
-l = Logger("main logger", level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    stream=sys.stderr,
+    force=True,
+)
+l = logging.getLogger("structure_tools.esmfold")
 
 DEFAULT_NUM_LOOPS = 20
 DEFAULT_NUM_SAMPLING_STEPS = 100
@@ -95,6 +101,7 @@ def local_prediction(
     l.info("Finished loading model")
 
     for item in validated_content:
+        l.info("Starting item {0}".format(item["name"]))
         spi = build_structure_input(item)
         result = ESMFold2InputBuilder().fold(
             model,
@@ -105,7 +112,7 @@ def local_prediction(
             seed=seed,
         )
         _write_fold_result(item["name"], result)
-
+        l.info("Finished item {0}".format(item["name"]))
 
 @cli.command()
 @click.argument("INPUT_FILE")
