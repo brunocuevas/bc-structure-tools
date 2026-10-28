@@ -15,8 +15,8 @@ logging.basicConfig(
 )
 l = logging.getLogger("structure_tools.esmfold")
 
-DEFAULT_NUM_LOOPS = 20
-DEFAULT_NUM_SAMPLING_STEPS = 100
+DEFAULT_NUM_LOOPS = 5
+DEFAULT_NUM_SAMPLING_STEPS = 25
 DEFAULT_NUM_DIFFUSION_SAMPLES = 1
 DEFAULT_SEED = 0
 
@@ -25,7 +25,7 @@ def load_model():
     from esm.models.esmfold2 import EsmFold2Model
 
     model = EsmFold2Model.from_pretrained(
-        "biohub/ESMFold2",
+        "biohub/ESMFold2-Fast",
         device="cuda",
     ).eval()
     return model
